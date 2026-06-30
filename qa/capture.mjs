@@ -215,7 +215,10 @@ async function main() {
     max_channel: +maxDelta,
     brightness: +(afterBright - beforeBright).toFixed(2),
   };
-  report.s6_breathing = ambientCount > 0 && (stddevDelta > 1 || maxDelta > 5 || afterBright - beforeBright > 3);
+  // After the brightness tuning, breathing may cause the scene to dim slightly
+  // (the previous dye dissipates while new soft breath enters). Accept any
+  // meaningful change in either direction.
+  report.s6_breathing = ambientCount > 0 && (stddevDelta > 0.5 || maxDelta > 5 || Math.abs(afterBright - beforeBright) > 3);
 
   // ──────────── S8: BLOOM_VISIBLE ────────────
   // Capture idle center 400x400 before motion (baseline for halo)

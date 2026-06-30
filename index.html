@@ -585,8 +585,9 @@ void main () {
     vec3 bloom = texture(uBloom, vUv).rgb * uBloomIntensity;
     outc += bloom;
 
-    // 8. Mild gamma + HDR tonemap
+    // 8. Mild gamma + global dim (softer on the eyes) + HDR tonemap
     outc = pow(outc, vec3(1.0/1.1));
+    outc *= 0.82;  // global brightness dim so the aurora stays readable but never hurts the eyes
     fragColor = vec4(tonemap(outc), 1.0);
 }
 </script>
@@ -849,12 +850,12 @@ void main () {
       SPLAT_RADIUS: 0.18,
       SPLAT_FORCE: 6000,
       FOAM_ENABLED: true,
-      FOAM_INTENSITY: 0.15,
+      FOAM_INTENSITY: 0.07,
       FOAM_THRESHOLD: 8.0,
       FOAM_DECAY: 0.92,
       BLOOM_ENABLED: true,
-      BLOOM_INTENSITY: 0.55,
-      BLOOM_THRESHOLD: 0.3,
+      BLOOM_INTENSITY: 0.25,
+      BLOOM_THRESHOLD: 0.5,
       BLOOM_SOFT_KNEE: 0.7,
       BLOOM_RADIUS: 0.85,
       BLOOM_LEVELS: 6,
@@ -1311,10 +1312,11 @@ void main () {
       var t = now * 0.0008;
       var col1 = auroraColor(now, r1, r2);
       var col2 = auroraColor(now + 1000, r2, r1);
-      // Boost ambient dye (1.6×) — covers the higher dissipation rate that
-      // single-pointer splats don't fight against.
-      col1 = { r: col1.r * 1.6, g: col1.g * 1.6, b: col1.b * 1.6 };
-      col2 = { r: col2.r * 1.6, g: col2.g * 1.6, b: col2.b * 1.6 };
+      // Boost ambient dye (1.0× — no extra boost, baseline 2.5× in splat() is already
+      // strong enough to stay visible against dissipation, and the extra boost was
+      // pushing the scene into harsh white territory).
+      col1 = { r: col1.r * 1.0, g: col1.g * 1.0, b: col1.b * 1.0 };
+      col2 = { r: col2.r * 1.0, g: col2.g * 1.0, b: col2.b * 1.0 };
       // Lower velocity injection for auto-breathing (was 1500) so foam doesn't accumulate
       splat(r1, r2, (Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200, col1);
       splat(r2, r1, (Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200, col2);
