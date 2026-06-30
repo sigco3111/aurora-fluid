@@ -422,6 +422,175 @@ void main () {
 }
 </script>
 
+  <script type="x-shader/x-fragment" id="foamExtractFrag">#version 300 es
+precision highp float;
+precision highp sampler2D;
+in vec2 vUv;
+out vec4 fragColor;
+uniform sampler2D uVelocity;
+uniform sampler2D uPrevFoam;
+uniform float uThreshold;
+uniform float uDecay;
+void main () {
+    vec2 v = texture(uVelocity, vUv).xy;
+    float speed = length(v);
+    float foam = smoothstep(uThreshold, uThreshold + 4.0, speed);
+    float prev = texture(uPrevFoam, vUv).x;
+    fragColor = vec4(max(foam, prev * uDecay), 0.0, 0.0, 1.0);
+}
+</script>
+
+  <script type="x-shader/x-fragment" id="bloomThresholdFrag">#version 300 es
+precision highp float;
+precision highp sampler2D;
+in vec2 vUv;
+out vec4 fragColor;
+uniform sampler2D uSource;
+uniform vec2 uTexel;
+uniform float uThreshold;
+uniform float uSoftKnee;
+void main () {
+    vec3 c = texture(uSource, vUv).rgb;
+    float br = max(c.r, max(c.g, c.b));
+    float rq = clamp(br - uThreshold + uSoftKnee, 0.0, 2.0 * uSoftKnee);
+    rq = rq * rq * 0.25 / max(uSoftKnee, 0.0001);
+    float t = max(0.0, br - uThreshold) / max(0.0001, br);
+    fragColor = vec4(c * t * rq, 1.0);
+}
+</script>
+
+  <script type="x-shader/x-fragment" id="kawaseDownFrag">#version 300 es
+precision highp float;
+precision highp sampler2D;
+in vec2 vUv;
+out vec4 fragColor;
+uniform sampler2D uSource;
+uniform vec2 uTexel;
+uniform float uRadius;
+void main () {
+    vec2 off1 = vec2(0.5) * uTexel;
+    vec2 off2 = vec2(2.5) * uTexel;
+    vec2 off3 = vec2(4.5) * uTexel;
+    vec3 c = vec3(0.0);
+    c += texture(uSource, vUv + vec2(-off1.x, -off1.y)).rgb;
+    c += texture(uSource, vUv + vec2( off1.x, -off1.y)).rgb;
+    c += texture(uSource, vUv + vec2(-off1.x,  off1.y)).rgb;
+    c += texture(uSource, vUv + vec2( off1.x,  off1.y)).rgb;
+    c += texture(uSource, vUv + vec2(-off2.x, -off2.y)).rgb;
+    c += texture(uSource, vUv + vec2( off2.x, -off2.y)).rgb;
+    c += texture(uSource, vUv + vec2(-off2.x,  off2.y)).rgb;
+    c += texture(uSource, vUv + vec2( off2.x,  off2.y)).rgb;
+    c += texture(uSource, vUv + vec2(-off3.x, -off3.y)).rgb;
+    c += texture(uSource, vUv + vec2( off3.x, -off3.y)).rgb;
+    c += texture(uSource, vUv + vec2(-off3.x,  off3.y)).rgb;
+    c += texture(uSource, vUv + vec2( off3.x,  off3.y)).rgb;
+    c += texture(uSource, vUv).rgb;
+    fragColor = vec4(c / 13.0, 1.0);
+}
+</script>
+
+  <script type="x-shader/x-fragment" id="kawaseUpFrag">#version 300 es
+precision highp float;
+precision highp sampler2D;
+in vec2 vUv;
+out vec4 fragColor;
+uniform sampler2D uSource;
+uniform sampler2D uAdditive;
+uniform vec2 uTexel;
+uniform float uRadius;
+void main () {
+    vec2 off = vec2(0.5) * uTexel;
+    vec3 c = vec3(0.0);
+    c += texture(uSource, vUv + vec2(-off.x, -off.y)).rgb * 0.25;
+    c += texture(uSource, vUv + vec2( off.x, -off.y)).rgb * 0.25;
+    c += texture(uSource, vUv + vec2(-off.x,  off.y)).rgb * 0.25;
+    c += texture(uSource, vUv + vec2( off.x,  off.y)).rgb * 0.25;
+    c += texture(uSource, vUv).rgb * 0.5;
+    c += texture(uAdditive, vUv).rgb;
+    fragColor = vec4(c, 1.0);
+}
+</script>
+
+  <script type="x-shader/x-fragment" id="finalCompositeFrag">#version 300 es
+precision highp float;
+precision highp sampler2D;
+in vec2 vUv;
+out vec4 fragColor;
+uniform sampler2D uDye;
+uniform sampler2D uBloom;
+uniform sampler2D uFoam;
+uniform vec2 uTexel;
+uniform float uTime;
+uniform vec3 uBgTop;
+uniform vec3 uBgBot;
+uniform vec3 uPalA;
+uniform vec3 uPalB;
+uniform vec3 uPalC;
+uniform vec3 uPalD;
+uniform float uHueShift;
+uniform float uAberration;
+uniform float uBloomIntensity;
+uniform float uFoamIntensity;
+uniform float uParallaxStrength;
+vec3 palette(float t, vec3 a, vec3 b, vec3 c, vec3 d) {
+    return a + b * cos(6.28318 * (c * t + d));
+}
+vec3 tonemap(vec3 c) {
+    c = max(c, vec3(0.0));
+    return 1.055 * pow(c, vec3(1.0/2.4)) - 0.055;
+}
+void main () {
+    // 1. Subtle radial parallax for depth feel
+    vec2 pa = (vUv - 0.5) * uParallaxStrength;
+
+    // 2. Chromatic aberration: 3-tap with per-channel UV offset
+    vec2 base = vUv + pa;
+    vec2 offR = vec2(-uAberration, 0.0);
+    vec2 offG = vec2(0.0, 0.0);
+    vec2 offB = vec2( uAberration, 0.0);
+    vec3 dye = vec3(
+      texture(uDye, base + offR).r,
+      texture(uDye, base + offG).g,
+      texture(uDye, base + offB).b
+    );
+
+    // 3. Background gradient
+    vec3 bg = mix(uBgBot, uBgTop, smoothstep(0.0, 1.0, vUv.y));
+
+    // 4. Aurora palette mapping (preserved from displayFrag)
+    float gx = dFdx(dye.r);
+    float gy = dFdy(dye.r);
+    float edge = clamp(length(vec2(gx, gy)) * 14.0, 0.0, 0.6);
+    float t = clamp(length(dye) * 2.5, 0.0, 1.0);
+    vec3 ph = uPalD + vec3(0.0, 0.10, 0.20) * sin(uTime * 0.05)
+            + vec3(0.25, 0.0 , 0.15) * sin(uTime * 0.13);
+    vec3 col = palette(t + edge * uHueShift, uPalA, uPalB, uPalC, ph);
+    float density = clamp(dye.r * 2.4 + dye.g * 1.8 + dye.b * 1.4, 0.0, 1.4);
+    col *= 0.7 + 1.15 * density;
+    vec3 outc = bg + col * smoothstep(0.0, 0.10, density);
+
+    // 5. Foam composite — tint by the aurora color (so it picks up dye color, not just white)
+    float foamVal = texture(uFoam, vUv).x;
+    // Sample the same dye with parallax to find the local aurora color
+    vec3 foamTint = texture(uDye, base + vec2(0.0)).rgb;
+    // Mix between white and the aurora tint for a softer, more colorful foam
+    vec3 foamColor = mix(vec3(1.0), normalize(foamTint + vec3(0.001)) * 1.2, 0.7);
+    outc += foamColor * foamVal * uFoamIntensity;
+
+    // 6. Vignette
+    float vig = 1.0 - smoothstep(0.45, 1.05, length(vUv - 0.5) * 1.414);
+    outc *= mix(0.30, 1.0, vig);
+
+    // 7. Bloom additive (long-tailed halo, not vignetted)
+    vec3 bloom = texture(uBloom, vUv).rgb * uBloomIntensity;
+    outc += bloom;
+
+    // 8. Mild gamma + HDR tonemap
+    outc = pow(outc, vec3(1.0/1.1));
+    fragColor = vec4(tonemap(outc), 1.0);
+}
+</script>
+
   <!-- ===================== Vertex shader (fullscreen tri) ===================== -->
 
   <script type="x-shader/x-vertex" id="vert">#version 300 es
@@ -678,7 +847,19 @@ void main () {
       PRESSURE_ITERATIONS: 20,
       CURL: 28,
       SPLAT_RADIUS: 0.18,
-      SPLAT_FORCE: 6000
+      SPLAT_FORCE: 6000,
+      FOAM_ENABLED: true,
+      FOAM_INTENSITY: 0.15,
+      FOAM_THRESHOLD: 8.0,
+      FOAM_DECAY: 0.92,
+      BLOOM_ENABLED: true,
+      BLOOM_INTENSITY: 0.55,
+      BLOOM_THRESHOLD: 0.3,
+      BLOOM_SOFT_KNEE: 0.7,
+      BLOOM_RADIUS: 0.85,
+      BLOOM_LEVELS: 6,
+      ABERRATION: 0.0025,
+      PARALLAX_STRENGTH: 0.004
     };
 
     // ---------- Read shader sources ----------
@@ -699,6 +880,11 @@ void main () {
     var displaySrc = shaderSrc('displayFrag');
     var advectionAutoSrc = shaderSrc('advectionAutoFrag');
     var advectionManualSrc = shaderSrc('advectionManualFrag');
+    var foamExtractSrc = shaderSrc('foamExtractFrag');
+    var bloomThresholdSrc = shaderSrc('bloomThresholdFrag');
+    var kawaseDownSrc = shaderSrc('kawaseDownFrag');
+    var kawaseUpSrc = shaderSrc('kawaseUpFrag');
+    var finalCompositeSrc = shaderSrc('finalCompositeFrag');
 
     // ---------- Compile all programs ----------
     var programs;
@@ -713,7 +899,12 @@ void main () {
         advectionAuto:  createProgram(vertSrc, advectionAutoSrc),
         advectionManual:createProgram(vertSrc, advectionManualSrc),
         splat:          createProgram(vertSrc, splatSrc),
-        display:        createProgram(vertSrc, displaySrc)
+        display:        createProgram(vertSrc, displaySrc),
+        foamExtract:    createProgram(vertSrc, foamExtractSrc),
+        bloomThreshold:createProgram(vertSrc, bloomThresholdSrc),
+        kawaseDown:    createProgram(vertSrc, kawaseDownSrc),
+        kawaseUp:      createProgram(vertSrc, kawaseUpSrc),
+        finalComposite:createProgram(vertSrc, finalCompositeSrc)
       };
     } catch (e) {
       showError('Shader compilation failed', e.message || String(e));
@@ -737,7 +928,8 @@ void main () {
 
     // ---------- Resize / canvas size ----------
     var simWidth, simHeight, dyeWidth, dyeHeight;
-    var velocity, dye, pressure, divergence, curl;
+    var velocity, dye, pressure, divergence, curl, foam;
+    var bloomThresholdTex, bloomDownA, bloomDownB, bloomUpA, bloomUpB, bloomFinalTex;
 
     function getResolution(target) {
       var aspect = canvas.width / canvas.height;
@@ -764,11 +956,30 @@ void main () {
       var filter = NEAREST;
       var rgba = { internal: 0x881A, format: RGBA };
 
-      velocity  = createDoubleFBO(simWidth, simHeight, velFmt.internal,  velFmt.format,  texType, filter);
+      // Force velocity to RGBA16F for compatibility (some drivers have issues with RG16F render targets)
+      velocity  = createDoubleFBO(simWidth, simHeight, rgba.internal,      rgba.format,      texType, filter);
       dye       = createDoubleFBO(dyeWidth, dyeHeight, dyeFmt.internal,  dyeFmt.format,  texType, filter);
       pressure  = createDoubleFBO(simWidth, simHeight, presFmt.internal, presFmt.format, texType, filter);
       divergence = createFBO    (simWidth, simHeight, presFmt.internal, presFmt.format, texType, filter);
       curl       = createFBO    (simWidth, simHeight, presFmt.internal, presFmt.format, texType, filter);
+
+      var foamFmt = getSupportedFormat('pressure', NEAREST);
+      foam = createDoubleFBO(simWidth, simHeight, foamFmt.internal, foamFmt.format, HALF_FLOAT, NEAREST);
+
+      var rgbaFmt = getSupportedFormat('dye', LINEAR);
+      var bw = Math.max(2, dyeWidth >> 1);
+      var bh = Math.max(2, dyeHeight >> 1);
+      bloomThresholdTex = createFBO(bw, bh, rgbaFmt.internal, rgbaFmt.format, HALF_FLOAT, LINEAR);
+      bloomDownA = []; bloomDownB = []; bloomUpA = []; bloomUpB = [];
+      var cw = bw, ch = bh;
+      for (var li = 0; li < config.BLOOM_LEVELS; li++) {
+        bloomDownA.push(createFBO(cw, ch, rgbaFmt.internal, rgbaFmt.format, HALF_FLOAT, LINEAR));
+        bloomDownB.push(createFBO(cw, ch, rgbaFmt.internal, rgbaFmt.format, HALF_FLOAT, LINEAR));
+        bloomUpA  .push(createFBO(cw, ch, rgbaFmt.internal, rgbaFmt.format, HALF_FLOAT, LINEAR));
+        bloomUpB  .push(createFBO(cw, ch, rgbaFmt.internal, rgbaFmt.format, HALF_FLOAT, LINEAR));
+        cw = Math.max(2, cw >> 1); ch = Math.max(2, ch >> 1);
+      }
+      bloomFinalTex = createFBO(bw, bh, rgbaFmt.internal, rgbaFmt.format, HALF_FLOAT, LINEAR);
     }
 
     function resizeCanvas() {
@@ -868,6 +1079,51 @@ void main () {
       dye.swap();
     }
 
+    function foamPass() {
+      programs.foamExtract.bind();
+      gl.uniform1i(programs.foamExtract.uniforms.uVelocity, velocity.read.attach(0));
+      gl.uniform1i(programs.foamExtract.uniforms.uPrevFoam, foam.read.attach(1));
+      gl.uniform1f(programs.foamExtract.uniforms.uThreshold, config.FOAM_THRESHOLD);
+      gl.uniform1f(programs.foamExtract.uniforms.uDecay, config.FOAM_DECAY);
+      blit(foam.write);
+      foam.swap();
+    }
+
+    function bloomPass() {
+      // 1) threshold extract
+      programs.bloomThreshold.bind();
+      gl.uniform2f(programs.bloomThreshold.uniforms.uTexel, 1.0 / dye.width, 1.0 / dye.height);
+      gl.uniform1i(programs.bloomThreshold.uniforms.uSource, dye.read.attach(0));
+      gl.uniform1f(programs.bloomThreshold.uniforms.uThreshold, config.BLOOM_THRESHOLD);
+      gl.uniform1f(programs.bloomThreshold.uniforms.uSoftKnee, config.BLOOM_SOFT_KNEE);
+      blit(bloomThresholdTex);
+
+      // 2) down chain
+      var src = bloomThresholdTex;
+      for (var li = 0; li < config.BLOOM_LEVELS; li++) {
+        programs.kawaseDown.bind();
+        var dst = bloomDownA[li];
+        gl.uniform2f(programs.kawaseDown.uniforms.uTexel, 1.0 / src.width, 1.0 / src.height);
+        gl.uniform1i(programs.kawaseDown.uniforms.uSource, src.attach(0));
+        gl.uniform1f(programs.kawaseDown.uniforms.uRadius, config.BLOOM_RADIUS);
+        blit(dst);
+        src = dst;
+      }
+
+      // 3) up chain (Pavel pattern: each level up-samples previous-up + adds corresponding down level)
+      src = bloomDownA[config.BLOOM_LEVELS - 1];
+      for (var li = config.BLOOM_LEVELS - 1; li >= 0; li--) {
+        programs.kawaseUp.bind();
+        var dst = (li === 0) ? bloomFinalTex : bloomUpA[li - 1];
+        gl.uniform2f(programs.kawaseUp.uniforms.uTexel, 1.0 / src.width, 1.0 / src.height);
+        gl.uniform1i(programs.kawaseUp.uniforms.uSource, src.attach(0));
+        gl.uniform1i(programs.kawaseUp.uniforms.uAdditive, bloomDownA[li].attach(1));
+        gl.uniform1f(programs.kawaseUp.uniforms.uRadius, config.BLOOM_RADIUS);
+        blit(dst);
+        src = dst;
+      }
+    }
+
     // ---------- Pass functions ----------
     function curlPass() {
       programs.curl.bind();
@@ -940,18 +1196,24 @@ void main () {
     }
 
     function render(now) {
-      programs.display.bind();
-      gl.uniform2f(programs.display.uniforms.uTexel, 1.0 / dye.width, 1.0 / dye.height);
-      gl.uniform1f(programs.display.uniforms.uTime, now * 0.001);
-      gl.uniform3f(programs.display.uniforms.uBgTop,   0.039, 0.071, 0.169);
-      gl.uniform3f(programs.display.uniforms.uBgBot,   0.008, 0.020, 0.071);
-      gl.uniform3f(programs.display.uniforms.uPalA,    0.55,  0.50,  0.60);
-      gl.uniform3f(programs.display.uniforms.uPalB,    0.45,  0.50,  0.50);
-      gl.uniform3f(programs.display.uniforms.uPalC,    1.00,  1.00,  1.00);
-      gl.uniform3f(programs.display.uniforms.uPalD,    0.00,  0.33,  0.67);
-      gl.uniform1f(programs.display.uniforms.uHueShift, 0.18);
-      gl.uniform1i(programs.display.uniforms.uDye, dye.read.attach(0));
-      // Render to default framebuffer at full canvas size
+      if (config.BLOOM_ENABLED) bloomPass();
+      programs.finalComposite.bind();
+      gl.uniform2f(programs.finalComposite.uniforms.uTexel, 1.0 / dye.width, 1.0 / dye.height);
+      gl.uniform1f(programs.finalComposite.uniforms.uTime, now * 0.001);
+      gl.uniform3f(programs.finalComposite.uniforms.uBgTop,  0.039, 0.071, 0.169);
+      gl.uniform3f(programs.finalComposite.uniforms.uBgBot,  0.008, 0.020, 0.071);
+      gl.uniform3f(programs.finalComposite.uniforms.uPalA,   0.55,  0.50,  0.60);
+      gl.uniform3f(programs.finalComposite.uniforms.uPalB,   0.45,  0.50,  0.50);
+      gl.uniform3f(programs.finalComposite.uniforms.uPalC,   1.00,  1.00,  1.00);
+      gl.uniform3f(programs.finalComposite.uniforms.uPalD,   0.00,  0.33,  0.67);
+      gl.uniform1f(programs.finalComposite.uniforms.uHueShift, 0.18);
+      gl.uniform1f(programs.finalComposite.uniforms.uAberration,      config.ABERRATION);
+      gl.uniform1f(programs.finalComposite.uniforms.uBloomIntensity,   config.BLOOM_INTENSITY);
+      gl.uniform1f(programs.finalComposite.uniforms.uFoamIntensity,    config.FOAM_INTENSITY);
+      gl.uniform1f(programs.finalComposite.uniforms.uParallaxStrength, config.PARALLAX_STRENGTH);
+      gl.uniform1i(programs.finalComposite.uniforms.uDye,   dye.read.attach(0));
+      gl.uniform1i(programs.finalComposite.uniforms.uBloom, bloomFinalTex.attach(1));
+      gl.uniform1i(programs.finalComposite.uniforms.uFoam,  foam.read.attach(2));
       gl.bindFramebuffer(FRAMEBUFFER, null);
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.bindVertexArray(triVAO);
@@ -970,6 +1232,7 @@ void main () {
       gradientSubtractPass();
       advectionPass(velocity, velocity, dt, config.VELOCITY_DISSIPATION);
       advectionPass(dye, dye, dt, config.DENSITY_DISSIPATION);
+      if (config.FOAM_ENABLED) foamPass();
     }
 
     // ---------- Pointer / touch handlers ----------
@@ -1041,7 +1304,8 @@ void main () {
       // Two soft splats at semi-random positions (biased toward the middle so
       // they're visible in the central 60% of the canvas). Boost dye intensity
       // higher than the multiplier in splat() so the breathing stays vivid
-      // against dissipation (≈ 2.7× per second).
+      // against dissipation (≈ 2.7× per second). Velocity kept low to avoid
+      // accumulating foam blobs in the idle scene.
       var r1 = 0.2 + Math.random() * 0.6;
       var r2 = 0.2 + Math.random() * 0.6;
       var t = now * 0.0008;
@@ -1051,8 +1315,9 @@ void main () {
       // single-pointer splats don't fight against.
       col1 = { r: col1.r * 1.6, g: col1.g * 1.6, b: col1.b * 1.6 };
       col2 = { r: col2.r * 1.6, g: col2.g * 1.6, b: col2.b * 1.6 };
-      splat(r1, r2, (Math.random() - 0.5) * 1500, (Math.random() - 0.5) * 1500, col1);
-      splat(r2, r1, (Math.random() - 0.5) * 1500, (Math.random() - 0.5) * 1500, col2);
+      // Lower velocity injection for auto-breathing (was 1500) so foam doesn't accumulate
+      splat(r1, r2, (Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200, col1);
+      splat(r2, r1, (Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200, col2);
       ambientSplatsEmitted += 2;
     }
 
@@ -1094,16 +1359,55 @@ void main () {
     window.__gl = gl;
     window.__fboHealth = (function () {
       try {
-        // Probe once with current FBO sizes
-        gl.bindFramebuffer(FRAMEBUFFER, velocity.read.fbo);
-        var s = gl.checkFramebufferStatus(FRAMEBUFFER);
-        gl.bindFramebuffer(FRAMEBUFFER, null);
-        return s === 0x8CD5 ? 'COMPLETE' : ('INCOMPLETE:' + s.toString(16));
+        var probes = [
+          ['velocity', velocity.read.fbo],
+          ['dye', dye.read.fbo],
+          ['pressure', pressure.read.fbo],
+          ['divergence', divergence.fbo],
+          ['curl', curl.fbo],
+          ['foam', foam.read.fbo],
+        ];
+        for (var i = 0; i < probes.length; i++) {
+          gl.bindFramebuffer(FRAMEBUFFER, probes[i][1]);
+          var s = gl.checkFramebufferStatus(FRAMEBUFFER);
+          gl.bindFramebuffer(FRAMEBUFFER, null);
+          if (s !== 0x8CD5) return 'INCOMPLETE:' + probes[i][0] + ':' + s.toString(16);
+        }
+        return 'COMPLETE';
       } catch (e) {
         return 'INCOMPLETE:' + (e.message || 'unknown');
       }
     })();
     window.__fps = function () { return fps; };
+    window.__config = config;
+    window.__foamTex = foam;
+    window.__velocityTex = velocity;
+    window.__dyeTex = dye;
+    Object.defineProperty(window, '__getFoamMean', {
+      value: function () {
+        var w = foam.read.width, h = foam.read.height;
+        var buf = new Uint8Array(w * h * 4);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, foam.read.fbo);
+        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        var s = 0;
+        for (var i = 0; i < buf.length; i += 4) s += buf[i];
+        return +(s / (w * h)).toFixed(3);
+      }
+    });
+    window.__bloomFinalTex = bloomFinalTex;
+    Object.defineProperty(window, '__getBloomMean', {
+      value: function () {
+        var w = bloomFinalTex.width, h = bloomFinalTex.height;
+        var buf = new Uint8Array(w * h * 4);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, bloomFinalTex.fbo);
+        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        var s = 0;
+        for (var i = 0; i < buf.length; i += 4) s += buf[i];
+        return +(s / (w * h)).toFixed(3);
+      }
+    });
     window.__palette = {
       a: [0.55, 0.50, 0.60],
       b: [0.45, 0.50, 0.50],

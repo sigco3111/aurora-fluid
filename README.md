@@ -105,6 +105,7 @@ Key features:
 | Algorithm | **Stable Fluids (Jos Stam 1999)** | Battle-tested GPU-friendly Eulerian solver. Stores velocity and dye in textures, with advect/diffuse/project passes |
 | Shader language | **GLSL ES 3.00** | WebGL 2's `texelFetch` and integer ops available |
 | Palette | **Aurora HSV gradient** | Time-rotating hue with cos-based interpolation — no user palette input required |
+| Post-process | **6-level kawase bloom + foam + chromatic aberration** | Layered visual richness — long-tailed bloom halos, velocity-based foam cores, per-channel UV offset for lens feel |
 | Distribution | **Single HTML** | CDN dependencies allowed (Three.js), all GLSL inlined as `<script type="x-shader">` |
 
 ### Implementation Options
@@ -116,13 +117,24 @@ Four decision points when writing the code:
 **C. Performance-first** — 512×512 downsample, 1-pass advection
 **D. Balanced (default, recommended)** — 256×256 simulation + 60fps + trail 0.96
 
+### Visual Richness Pipeline
+
+After Stable Fluids computes the dye field each frame, four post-process layers add visual depth:
+
+1. **Bloom** — 6-level kawase down + 6-level up chain extracts bright dye, blurs it through 6 mip levels, and additively composites the result as a soft glow.
+2. **Foam** — A separate R16F field is updated each frame from velocity magnitude (`smoothstep(threshold, threshold+4, length(v))`); the composite shader tints it with the local dye color for aurora-tinted highlights.
+3. **Chromatic aberration** — The final composite samples the dye texture three times with R/G/B UV offsets (0.0025 in UV), producing faint color fringes at high-contrast edges.
+4. **Parallax** — A subtle radial UV offset (0.004) gives a sense of depth to the simulation.
+
 ### Roadmap
 
 - [x] Repository scaffold
-- [ ] Single-file WebGL implementation (`index.html`)
-- [ ] Stable Fluids core (advect / diffuse / project)
-- [ ] Aurora color mapping shader
-- [ ] Mouse input → velocity injection
+- [x] Single-file WebGL implementation (`index.html`)
+- [x] Stable Fluids core (advect / diffuse / project)
+- [x] Aurora color mapping shader
+- [x] Mouse input → velocity injection
+- [x] Post-process: bloom + foam + chromatic aberration + parallax
+- [x] QA harness (12 scenarios, Playwright Chromium)
 - [ ] Vercel deploy
 
 ---

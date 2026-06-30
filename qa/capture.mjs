@@ -71,6 +71,36 @@ async function sampleCanvas(page, rect) {
   }, rect);
 }
 
+async function readFBORegion(page, handleName, region, channelIdx) {
+  return await page.evaluate(({ handleName, region, channelIdx }) => {
+    // Accept either double-FBO (has .read) or single FBO (has .fbo directly)
+    const handle = window[handleName];
+    if (!handle) return { error: 'no_handle' };
+    const fbo = handle.read || handle;  // double-FBO uses .read, single uses self
+    if (!fbo.fbo) return { error: 'no_fbo' };
+    const gl = window.__gl;
+    const w = fbo.width, h = fbo.height;
+    const sx = Math.max(0, Math.min(w - 1, region.x | 0));
+    const sy = Math.max(0, Math.min(h - 1, region.y | 0));
+    const sw = Math.max(1, Math.min(w - sx, region.w | 0));
+    const sh = Math.max(1, Math.min(h - sy, region.h | 0));
+    // Use FLOAT readback for half-float textures (UNSIGNED_BYTE truncates small values)
+    const buf = new Float32Array(sw * sh * 4);
+    try {
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo.fbo);
+      gl.readPixels(sx, sy, sw, sh, gl.RGBA, gl.FLOAT, buf);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    } catch (e) {
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+      return { error: 'readPixels_failed: ' + e.message };
+    }
+    let s = 0;
+    for (let i = 0; i < buf.length; i += 4) s += buf[i + channelIdx];
+    return { mean: +(s / (sw * sh)).toFixed(4),
+             region: { x: sx, y: sy, w: sw, h: sh } };
+  }, { handleName, region, channelIdx });
+}
+
 async function main() {
   const browser = await chromium.launch({
     // Do NOT force --use-gl=swiftshader: on macOS the native GL driver works and
@@ -187,9 +217,90 @@ async function main() {
   };
   report.s6_breathing = ambientCount > 0 && (stddevDelta > 1 || maxDelta > 5 || afterBright - beforeBright > 3);
 
+  // ──────────── S8: BLOOM_VISIBLE ────────────
+  // Capture idle center 400x400 before motion (baseline for halo)
+  const s8idle = await sampleCanvas(page, { x: 312, y: 184, w: 400, h: 400 });
+  // Already 30+ mouse moves happened in S4; just sample post-motion
+  const s8after = await sampleCanvas(page, { x: 312, y: 184, w: 400, h: 400 });
+  const s8idleMax = s8idle && !s8idle.error ? Math.max(...s8idle.max_rgb) : 0;
+  const s8afterMax = s8after && !s8after.error ? Math.max(...s8after.max_rgb) : 0;
+  const s8halo = s8afterMax - s8idleMax;
+  const s8bloomMean = await readFBORegion(page, '__bloomFinalTex', { x: 0, y: 0, w: 256, h: 192 }, 0);
+  report.s8_stats = {
+    halo: +s8halo.toFixed(2),
+    bloom_mean: s8bloomMean?.mean,
+    bloom_error: s8bloomMean?.error,
+    s8idle_error: s8idle?.error,
+    s8after_error: s8after?.error,
+  };
+  // Pass if bloom FBO has non-trivial content (>= 0.005 in float space)
+  report.s8_pass = s8bloomMean && !s8bloomMean.error && s8bloomMean.mean >= 0.005;
+
+  // ──────────── S9: ABERRATION_FRINGES ────────────
+  // Sample a horizontal scanline at canvas center to detect per-channel UV offset
+  const s9line = await page.evaluate(() => {
+    const gl = window.__gl;
+    const buf = new Uint8Array(1024 * 1 * 4);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    gl.readPixels(0, 384, 1024, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    return Array.from(buf);
+  });
+  // Find argmax x for each channel, restricted to central 80% to avoid canvas edges
+  function argmaxX(arr, ch) {
+    let best = -1, bestVal = -1;
+    for (let x = 100; x < 924; x++) {
+      const v = arr[x*4 + ch];
+      if (v > bestVal) { bestVal = v; best = x; }
+    }
+    return { x: best, v: bestVal };
+  }
+  const s9xR = argmaxX(s9line, 0);
+  const s9xG = argmaxX(s9line, 1);
+  const s9xB = argmaxX(s9line, 2);
+  report.s9_stats = { xR: s9xR, xG: s9xG, xB: s9xB };
+  // Pass if the three channels peak at different x positions (at least 1 pixel apart)
+  report.s9_pass = Math.abs(s9xR.x - s9xB.x) >= 1;
+
+  // ──────────── S10: FOAM_AT_HIGH_VELOCITY ────────────
+  // Do fast zigzag mouse motion to inject high-velocity regions
+  for (let i = 0; i < 40; i++) {
+    await page.mouse.move(200 + i * 12, 200 + (i % 2) * 200);
+    await page.waitForTimeout(15);
+  }
+  await page.waitForTimeout(300);
+  const s10foam = await readFBORegion(page, '__foamTex', { x: 0, y: 0, w: 256, h: 192 }, 0);
+  report.s10_stats = { foam_mean: s10foam?.mean, error: s10foam?.error };
+  // Pass if foam has accumulated (foam_mean > 0.01 in float space = non-trivial mean intensity)
+  report.s10_pass = s10foam && !s10foam.error && s10foam.mean > 0.01;
+
   // ──────────── S7: CONSOLE_CLEAN ────────────
   report.s7_console_clean = errors.length === 0;
   report.errors = errors;
+
+  // ──────────── S11: NO_REGRESSION ────────────
+  // All original scenarios must still pass (must run AFTER S7 so s7_console_clean is set)
+  report.s11_pass = !!report.s1_webgl2 && !!report.s2_fbo_complete && !!report.s3_idle_painted &&
+                    !!report.s4_splat_color && !!report.s5_fps_pass && !!report.s6_breathing &&
+                    !!report.s7_console_clean;
+
+  // ──────────── S12: PERFORMANCE_BUDGET ────────────
+  // Sample FPS over 60 motion frames
+  const fpsSamples = [];
+  for (let i = 0; i < 60; i++) {
+    await page.mouse.move(512 + 150 * Math.cos(i * 0.1 * 3), 384 + 150 * Math.sin(i * 0.1 * 3));
+    await page.waitForTimeout(33);
+    const f = await page.evaluate(() => {
+      if (typeof window.__fps === 'function') return window.__fps();
+      if (typeof window.__fps === 'number') return window.__fps;
+      return null;
+    });
+    if (typeof f === 'number') fpsSamples.push(f);
+  }
+  const meanFps = fpsSamples.length > 0 ? fpsSamples.reduce((a, b) => a + b, 0) / fpsSamples.length : 0;
+  report.s12_fps_samples = fpsSamples.length;
+  report.s12_fps_mean = +meanFps.toFixed(2);
+  report.s12_pass = fpsSamples.length >= 30 && meanFps >= 30;
 
   await browser.close();
 
@@ -197,7 +308,8 @@ async function main() {
 
   const allPass = !!report.s1_webgl2 && !!report.s2_fbo_complete && !!report.s3_idle_painted &&
                   !!report.s4_splat_color && !!report.s5_fps_pass && !!report.s6_breathing &&
-                  !!report.s7_console_clean;
+                  !!report.s7_console_clean && !!report.s8_pass && !!report.s9_pass &&
+                  !!report.s10_pass && !!report.s11_pass && !!report.s12_pass;
   console.log(JSON.stringify({ ...report, _all_pass: allPass }, null, 2));
   process.exit(allPass ? 0 : 1);
 }
