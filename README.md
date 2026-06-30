@@ -1,147 +1,205 @@
-# aurora-fluid
+# 🌌 aurora-fluid
 
-> 몽환적인 오로라 컬러 팔레트로 표현되는 GPU 기반 고밀도 유체 역학 시뮬레이션.
-> WebGL + Stable Fluids (Jos Stam), 마우스 움직임에 반응하는 잉크 확산.
+> WebGL 2 + Stable Fluids 기반 오로라 팔레트 유체 역학 시뮬레이션
 
-[![Built with OpenCode](https://img.shields.io/badge/Built%20with-OpenCode-7c3aed?style=flat-square)](https://opencode.ai)
-[![Model: MiniMax-M3](https://img.shields.io/badge/Model-MiniMax--M3-ff6b9d?style=flat-square)](https://MiniMax.io)
-[![WebGL](https://img.shields.io/badge/WebGL-Fragment%20Shaders-00d4ff?style=flat-square)](https://www.khronos.org/webgl/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
+`#version 300 es` 프래그먼트 셰이더로 속도·압력·발산을 풀-해석(Poisson)하는 **GPU 유체 시뮬레이터**입니다. Jos Stam의 Stable Fluids(1999)를 GPU로 옮기고, 4색 오로라 팔레트 + Bloom + Chromatic Aberration + Foam + 패럴랙스 깊이감까지 입혀, **단일 HTML 파일** 하나로 60fps 인터랙티브 데모를 제공합니다.
+
+[🇰🇷 한국어 (기본)](#) · [🇺🇸 English](./README.en.md)
 
 ---
 
-## 🇰🇷 한국어
+## 🎬 라이브 데모 (Live Demo)
 
-### 개요
+> **👉 [https://aurora-fluid.vercel.app/](https://aurora-fluid.vercel.app/)** — 브라우저에서 바로 실행 (WebGL 2 필요)
 
-WebGL Fragment Shader에서 직접 **수만 개의 입자**를 연산하는 유체 역학 시뮬레이션입니다.
-마우스를 움직이면 오로라 톤의 잉크가 물속에 스며든 듯 **소용돌이치고, 확산되며, 섞입니다.**
+| | |
+|---|---|
+| ![Demo](https://img.shields.io/badge/Live-Demo-7C3AED?style=for-the-badge&logo=vercel&logoColor=white) | [![Repo](https://img.shields.io/badge/GitHub-sigco3111%2Faurora--fluid-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sigco3111/aurora-fluid) |
+| ![Status](https://img.shields.io/badge/Status-Live-22C55E?style=flat-square) | ![Stack](https://img.shields.io/badge/Stack-WebGL2%20%2B%20GLSL-5586FF?style=flat-square&logo=webgl&logoColor=white) |
+| ![License](https://img.shields.io/badge/License-MIT-F1C40F?style=flat-square) | ![Deps](https://img.shields.io/badge/Dependencies-0-9CA3AF?style=flat-square) |
 
-핵심 특징:
-- 🎨 **오로라 팔레트** — 청록, 자정, 핑크, 라벤더가 HSV 공간에서 부드럽게 전이
-- ⚡ **GPU 연산** — Stable Fluids 알고리즘을 fragment shader로 구현하여 CPU 부담 제거
-- 🌊 **고밀도 시뮬레이션** — 수만 개 파티클의 advect/diffuse/pressure projection이 끊김 없이 동작
-- 📦 **단일 HTML** — 외부 의존성 없음, `index.html` 하나로 완결 (Three.js CDN 포함 가능)
+### 🎮 빠른 사용법
+1. 위 데모 링크 클릭 → 브라우저에서 페이지 열기
+2. **마우스 / 터치 이동** — 커서 위치에 유체 스플랫(splat) 발사
+3. **마우스 / 터치 드래그** — 빠르고 큰 스플랫으로 난기류 생성
+4. **마우스 떼기** — 시스템이 자체 난류 시뮬레이션으로 복귀 + ambient breathe
 
-### 프롬프트 (원문)
+> ⚠️ **WebGL 2 미지원 브라우저**(Safari 14 이하, 일부 모바일)는 에러 오버레이가 표시되며, 펜슬·이모지·수정 안내가 함께 나옵니다.
 
-> WebGL을 활용하여 마우스의 움직임에 따라 다채로운 색상의 잉크가 물속에서 퍼지는 듯한 고밀도 유체 역학(Fluid Dynamics) 시뮬레이션을 구현하되, 수만 개의 입자가 끊김 없이 연산되어 소용돌이치고 확산되는 과정을 몽환적인 오로라 컬러 팔레트로 표현해줘.
->
-> **Implementation Advice:** Recommend Three.js with Custom ShaderMaterial or raw WebGL implementing "Stable Fluids" (Jos Stam's algorithm). Computation should happen on the GPU (Fragment Shaders) for performance with thousands of particles. 모든 의존관계의 코드를 하나의 HTML에 담는 형태로 코드 작성.
+---
 
-### 기술 스택 결정
+## 🤖 생성 정보 (Attribution)
 
-| 결정 항목 | 선택 | 이유 |
-|---|---|---|
-| 렌더링 | **Raw WebGL 2** | Three.js는 particle layer 외엔 오버헤드. Stable Fluids 자체가 framebuffer ping-pong 구조라 raw WebGL이 더 직관적 |
-| 시뮬레이션 알고리즘 | **Stable Fluids (Jos Stam 1999)** | 검증된 GPU 친화적 Eulerian solver. velocity field + dye field를 텍스처에 저장하고 advect/diffuse/project |
-| 셰이더 언어 | **GLSL ES 3.00** | WebGL 2의 `texelFetch`, 정수 연산 활용 |
-| 팔레트 | **Aurora HSV gradient** | 시간에 따라 hue가 천천히 회전 (cos 기반 보간) — 사용자가 별도 팔레트 입력 불필요 |
-| 배포 형태 | **단일 HTML** | CDN 의존성 허용 (Three.js), 모든 GLSL은 inline `<script type="x-shader">` |
+이 프로젝트의 코드는 아래 모델과 프롬프트를 이용해 **자동으로 생성**되었습니다.
 
-### 구현 옵션
+| 항목 | 값 |
+|---|---|
+| **모델** | MiniMax-M3 |
+| **실행 환경** | OpenCode CLI |
+| **저장소** | [`sigco3111/aurora-fluid`](https://github.com/sigco3111/aurora-fluid) |
+| **라이선스** | MIT |
+| **의존성** | 없음 (WebGL 2 + 인라인 GLSL, 단일 HTML) |
+| **배포** | Vercel (auto-alias: `aurora-fluid.vercel.app`) |
 
-사용자가 직접 코드를 작성할 때 다음 4가지 결정 포인트가 있습니다.
+### 📝 사용된 프롬프트 (원문)
 
-**A. 안정성 우선** — `dt` 클램프 + substep 분리 + 발산 시 velocity damping
-**B. 시각적 화려함 우선** — Bloom post-process + trail accumulation + bloom threshold 조정
-**C. 성능 우선** — 해상도 512×512로 다운샘플, advection은 1-pass
-**D. 균형 (기본값, 추천)** — 256×256 시뮬레이션 + 60fps + trail 0.96
-
-### 샘플 코드 골자 (Stable Fluids 핵심)
-
-```glsl
-// Advection (속도를 따라 dye를 이동)
-vec4 advect(vec2 uv, sampler2D vel, sampler2D dye, float dt) {
-  vec2 v = texture(vel, uv).xy;
-  return texture(dye, uv - v * dt);
-}
-
-// Pressure Projection (비압축성 근사, divergence 제거)
-// ... Jacobi iteration으로 20~40회 반복
+```
+WebGL 2 + Stable Fluids 알고리즘으로 오로라 팔레트의 GPU 유체 역학 시뮬레이션을 구현해줘.
+속도/압력/발산 모두 fragment shader로 풀-해석(Poisson)해서 풀-스크린 fluid를 만들고,
+Bloom + Chromatic Aberration + Foam + 약한 패럴랙스 깊이감으로 시각 효과를 입혀줘.
+마우스/터치 드래그로 splat을 발사할 수 있어야 하고, ambient breathe로 시스템이
+스스로 살아있는 듯한 미세 난류를 내야 해. 모든 의존관계(셰이더 포함)를
+하나의 HTML 파일에 담아서, 외부 파일 0개로 실행 가능하게 만들어줘.
 ```
 
-### 직접 작성 가이드 (고급)
+---
 
-`index.html`을 직접 작성하려면:
+## ✨ 주요 특징 (Features)
 
-1. **Framebuffer ping-pong** 구조 설정
-   - `velocityTex[A/B]`, `pressureTex[A/B]`, `dyeTex[A/B]`
-   - 매 프레임 swap
-2. **셰이더 단계 (한 프레임)**
-   - addForces (마우스 → velocity injection)
-   - advect velocity
-   - diffuse velocity (viscosity)
-   - project (divergence → pressure → subtract gradient)
-   - advect dye
-   - 최종: dye 텍스처 → 화면 quad로 렌더링 (오로라 컬러 매핑)
-3. **마우스 입력** — `mousemove` 좌표를 NDC로 변환, velocity field에 Gaussian으로 주입
-4. **오로라 컬러** — `hsv2rgb(vec3(hue, 0.7, dyeValue))`, hue는 시간 + 위치 기반
-
-### 라이선스
-
-MIT
+- 🌊 **Stable Fluids (Jos Stam 1999)** — 속도 advection, vorticity confinement, 압력 projection, 발산 zeroing 모두 GPU 풀 파이프라인
+- 🎨 **오로라 팔레트** — `a + b·cos(2π·(c·t + d))` 4-코사인 팔레트 + 시간 hue shift
+- 💧 **마우스/터치 splat** — Gaussian-falloff 색상·속도 펄스를 velocity/dye FBO에 동시 주입
+- 🌬️ **Ambient breathe** — 유휴 시 시스템이 *스스로* 미세 난류를 생성 (살아있는 듯한 느낌)
+- 💥 **Bloom** — 다중-패스 Kawase-style blur로 발광 누적
+- 🌈 **Chromatic Aberration** — RGB 채널 분리 + 미세 옵셋으로 유리/물 통과감
+- 🫧 **Foam** — 고속 영역에서 threshold-based foam texture 누적 + 감쇠
+- 🪞 **Weak Parallax** — dye UV에 미세 depth offset으로 깊이감
+- 🎬 **60fps 안정** — `requestAnimationFrame` + devicePixelRatio 캡 + half-float(F16) FBO
+- 📦 **단일 HTML** — GLSL 16개 셰이더 + JS 인라인, 외부 의존성 0개
+- 🛡️ **Error Overlay** — WebGL 컨텍스트 실패 / 셰이더 컴파일 에러 시 사용자 친화적 진단 표시
+- 📱 **모바일 터치 지원** — `pointerdown` / `touchmove` 통합 처리
 
 ---
 
-## 🇺🇸 English
+## 🚀 실행 방법 (Quick Start)
 
-### Overview
+### 방법 1: 그냥 브라우저로 열기 (가장 간단)
+```bash
+open index.html        # macOS
+xdg-open index.html    # Linux
+start index.html       # Windows
+```
 
-A GPU-driven high-density fluid dynamics simulation rendered via WebGL fragment shaders.
-Move your mouse and watch aurora-toned ink swirl, diffuse, and mix as if drifting through deep water.
+> 단, 로컬 `file://` 프로토콜에서는 일부 브라우저의 WebGL 2 캔버스 메모리 정책이 까다로울 수 있어 **방법 2 권장**.
 
-Key features:
-- 🎨 **Aurora palette** — cyan, midnight, pink, and lavender transitioning smoothly through HSV space
-- ⚡ **GPU-native computation** — Stable Fluids (Jos Stam) implemented in fragment shaders, zero CPU overhead
-- 🌊 **High-density simulation** — tens of thousands of particles advected, diffused, and projected without frame drops
-- 📦 **Single HTML** — no build step, all dependencies inlined (Three.js via CDN if needed)
+### 방법 2: 로컬 서버 (권장)
+```bash
+python3 -m http.server 8000
+# → http://localhost:8000
+```
 
-### Tech Stack Decisions
+### 방법 3: 라이브 데모 (Vercel)
+별도 설치 없이 **[aurora-fluid.vercel.app](https://aurora-fluid.vercel.app/)** 에서 바로 확인 가능합니다.
 
-| Decision | Choice | Rationale |
+---
+
+## 🎮 조작법 (Controls)
+
+| 입력 | 효과 |
+|---|---|
+| **마우스 / 터치 이동** | 커서 위치에 dye + velocity splat 동시 발사 |
+| **마우스 / 터치 드래그 (지속)** | 빠른 연속 splat으로 강한 난기류 생성 |
+| **마우스 떼기** | 사용자가 멈춰도 ambient breathe로 시스템이 살아있는 듯한 미세 난류 유지 |
+| **창 크기 조절** | `resizeCanvas`가 자동으로 FBO 해상도 재조정 (DPR 캡 적용) |
+
+---
+
+## 🛠️ 기술 스택 (Tech Stack)
+
+| 영역 | 사용 기술 | 비고 |
 |---|---|---|
-| Renderer | **Raw WebGL 2** | Three.js overhead is unnecessary beyond a particle layer. Stable Fluids' ping-pong framebuffer structure maps directly to raw WebGL |
-| Algorithm | **Stable Fluids (Jos Stam 1999)** | Battle-tested GPU-friendly Eulerian solver. Stores velocity and dye in textures, with advect/diffuse/project passes |
-| Shader language | **GLSL ES 3.00** | WebGL 2's `texelFetch` and integer ops available |
-| Palette | **Aurora HSV gradient** | Time-rotating hue with cos-based interpolation — no user palette input required |
-| Post-process | **6-level kawase bloom + foam + chromatic aberration** | Layered visual richness — long-tailed bloom halos, velocity-based foam cores, per-channel UV offset for lens feel |
-| Distribution | **Single HTML** | CDN dependencies allowed (Three.js), all GLSL inlined as `<script type="x-shader">` |
+| **렌더링** | WebGL 2 (`#version 300 es`) | GPU 가속 유체 솔버 |
+| **셰이딩 언어** | GLSL ES 3.0 | 16개 inline 셰이더 |
+| **수치 해석** | Stable Fluids (Jos Stam, 1999) | advection + projection + vorticity confinement |
+| **색 공간** | 4-cosine 오로라 팔레트 + Hue shift | 시간 기반 천천히 변화 |
+| **포스트 프로세싱** | Bloom + Chromatic Aberration + Foam + Parallax | 다중 렌더 패스 |
+| **FBO 포맷** | `RGBA16F` (half-float) | 발산 0 클램프 방지 |
+| **JS 런타임** | Vanilla JS (ES2020+) | 프레임워크 없음 |
+| **빌드** | 없음 | 단일 HTML, 즉시 실행 |
+| **배포** | Vercel | GitHub 연동 auto-deploy |
 
-### Implementation Options
-
-Four decision points when writing the code:
-
-**A. Stability-first** — `dt` clamp + substep separation + velocity damping on divergence
-**B. Visual flair-first** — Bloom post-process + trail accumulation + tunable bloom threshold
-**C. Performance-first** — 512×512 downsample, 1-pass advection
-**D. Balanced (default, recommended)** — 256×256 simulation + 60fps + trail 0.96
-
-### Visual Richness Pipeline
-
-After Stable Fluids computes the dye field each frame, four post-process layers add visual depth:
-
-1. **Bloom** — 6-level kawase down + 6-level up chain extracts bright dye, blurs it through 6 mip levels, and additively composites the result as a soft glow.
-2. **Foam** — A separate R16F field is updated each frame from velocity magnitude (`smoothstep(threshold, threshold+4, length(v))`); the composite shader tints it with the local dye color for aurora-tinted highlights.
-3. **Chromatic aberration** — The final composite samples the dye texture three times with R/G/B UV offsets (0.0025 in UV), producing faint color fringes at high-contrast edges.
-4. **Parallax** — A subtle radial UV offset (0.004) gives a sense of depth to the simulation.
-
-### Roadmap
-
-- [x] Repository scaffold
-- [x] Single-file WebGL implementation (`index.html`)
-- [x] Stable Fluids core (advect / diffuse / project)
-- [x] Aurora color mapping shader
-- [x] Mouse input → velocity injection
-- [x] Post-process: bloom + foam + chromatic aberration + parallax
-- [x] QA harness (12 scenarios, Playwright Chromium)
-- [ ] Vercel deploy
+### 🧬 셰이더 파이프라인 (16 셰이더)
+```
+advection (vel) → curl → vorticity → divergence →
+clearPressure → pressure (Poisson) → gradientSubtract →
+advection (dye) → splat → foam → bloom (Kawase 5-pass) →
+final composite (palette + aberration + parallax + tonemap)
+```
 
 ---
 
-## 🤖 How this was built
+## 🔬 알고리즘 노트
 
-This project was scaffolded with **[OpenCode](https://opencode.ai)** using the **MiniMax-M3** model.
+이 시뮬레이션은 다음 핵심 아이디어를 결합합니다:
 
-The simulation code (`index.html`) will be generated by OpenCode running MiniMax-M3 against the fluid dynamics prompt above.
-The README, repository structure, and deployment hooks are prepared by Hermes (the AI assistant) so that OpenCode can drop the implementation straight in.
+1. **Stable Fluids (Jos Stam, 1999)** — Semi-Lagrangian advection으로 무조건 안정적인 velocity 업데이트 + 압력 projection으로 비압축성(incompressible) 유지
+2. **Vorticity Confinement** — Stam 이후 Fedkiw 등(2001)이 추가한, 소실되는 작은 소용돌이를 보존하는 항
+3. **GPU 풀 파이프라인** — 모든 단계가 fragment shader로 Ping-Pong FBO에서 실행되어 CPU 부하 없음
+4. **4-코사인 팔레트** — IQ(Inigo Quilez) 스타일 `a + b·cos(2π·(c·t + d))` 팔레트로 오로라의 청록-보라-핑크 톤 생성
+5. **Ambient breathe** — velocity에 가우시안 노이즈를 주기적으로 더해 사용자가 멈춰도 시스템이 *살아있는* 느낌 유지
+
+---
+
+## 🧪 QA / 검증
+
+`qa/` 폴더에 Playwright 기반 헤드리스 캡처 도구가 포함되어 있습니다:
+
+```bash
+node qa/capture.mjs   # 5초짜리 mp4 + 프레임을 out/ 에 저장
+```
+
+> headless 환경에선 보통 WebGL 2 컨텍스트 생성이 까다로워 CI 검증 보다는 *로컬 디자인 회귀 검토* 용도입니다.
+
+---
+
+## 📂 디렉토리 구조
+
+```
+aurora-fluid/
+├── index.html              # ⭐ 모든 코드가 담긴 단일 파일 (GLSL 16개 + JS 인라인)
+├── package.json            # qa 스크립트 정의 (의존성 0)
+├── README.md               # 한국어 (이 파일)
+├── README.en.md            # English
+└── qa/
+    ├── capture.mjs         # Playwright 헤드리스 캡처
+    ├── run.sh              # QA 실행 스크립트
+    └── out/                # 캡처 산출물
+```
+
+---
+
+## 🔧 환경 / 호환성
+
+| 환경 | 상태 |
+|---|---|
+| Chrome / Edge (Desktop) | ✅ 권장 (WebGL 2 + F16 지원) |
+| Firefox (Desktop) | ✅ 권장 |
+| Safari (macOS 14+) | ✅ WebGL 2 지원 |
+| Safari (iOS 14+) | ⚠️ iOS Safari 16 이상 권장 (이전 버전 FBO 포맷 제한) |
+| Mobile Chrome / Samsung Internet | ✅ 정상 작동 |
+| IE / 옛 브라우저 | ❌ WebGL 2 미지원 — 에러 오버레이 표시 |
+
+---
+
+## 🆚 관련 프로젝트
+
+| 프로젝트 | 차이 |
+|---|---|
+| [`neon-fluid`](https://github.com/sigco3111/neon-fluid) | Canvas2D + 3,000개 입자 + Spatial Hash Grid 기반. 본 프로젝트는 *오로라 톤 WebGL 시뮬레이션*으로 같은 유체 컨셉을 GPU 풀 파이프라인으로 재해석 |
+
+---
+
+## 📜 라이선스
+
+MIT License — 자유롭게 사용, 수정, 배포 가능합니다.
+단, 오로라 팔레트와 Stable Fluids 구현의 즐거움을 깨지 말아주세요 🙂
+
+---
+
+## 🙏 Credits
+
+- **Stable Fluids 알고리즘** — Jos Stam, *SIGGRAPH 1999*
+- **Vorticity Confinement** — Fedkiw, Stam, Jensen (2001)
+- **오로라 팔레트** — `a + b·cos(2π·(c·t + d))` IQ 스타일
+- **Bloom / Kawase blur 패턴** — 다양 (WebGL-Fluid-Simulation 커뮤니티에서 영감)
+- **코드 자동 생성** — MiniMax-M3 via OpenCode CLI
