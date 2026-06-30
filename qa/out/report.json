@@ -9,16 +9,16 @@
   "s2_fbo_complete": true,
   "s3_idle_stats": {
     "mean_rgb": [
-      40.54,
-      56.66,
-      89.01
+      30.38,
+      43.5,
+      69.82
     ],
     "max_rgb": [
-      57,
-      75,
-      110
+      44,
+      58,
+      87
     ],
-    "stddev": 22.32,
+    "stddev": 18.17,
     "non_black_fraction": 1,
     "samples": 786432,
     "region": {
@@ -31,16 +31,16 @@
   "s3_idle_painted": true,
   "s4_idle_region": {
     "mean_rgb": [
-      45.21,
-      62.27,
-      96.51
+      34.18,
+      48.07,
+      75.92
     ],
     "max_rgb": [
-      55,
-      73,
-      108
+      42,
+      57,
+      85
     ],
-    "stddev": 12.18,
+    "stddev": 9.91,
     "non_black_fraction": 1,
     "samples": 160000,
     "region": {
@@ -52,16 +52,16 @@
   },
   "s4_splat_stats": {
     "mean_rgb": [
-      98.69,
-      95.48,
-      139.97
+      76.48,
+      70.13,
+      111.46
     ],
     "max_rgb": [
-      255,
-      255,
+      253,
+      237,
       255
     ],
-    "stddev": 107.58,
+    "stddev": 96.29,
     "non_black_fraction": 1,
     "samples": 160000,
     "region": {
@@ -72,25 +72,25 @@
     }
   },
   "s4_delta": {
-    "brightness": 43.46,
-    "stddev": 95.4
+    "brightness": 35.54,
+    "stddev": 86.38
   },
   "s4_splat_color": true,
-  "s5_fps": 32.78,
+  "s5_fps": 33.1,
   "s5_fps_pass": true,
   "s6_ambient_splats_emitted": 24,
   "s6_breathing_before": {
     "mean_rgb": [
-      84.14,
-      81.79,
-      120.38
+      52.78,
+      53,
+      90.66
     ],
     "max_rgb": [
-      255,
-      255,
+      249,
+      236,
       255
     ],
-    "stddev": 80.38,
+    "stddev": 75.04,
     "non_black_fraction": 1,
     "samples": 786432,
     "region": {
@@ -102,16 +102,16 @@
   },
   "s6_breathing_after": {
     "mean_rgb": [
-      75.77,
-      81.56,
-      113.65
+      42.66,
+      49.73,
+      81.87
     ],
     "max_rgb": [
-      255,
-      255,
+      244,
+      233,
       255
     ],
-    "stddev": 59.14,
+    "stddev": 54.83,
     "non_black_fraction": 1,
     "samples": 786432,
     "region": {
@@ -122,38 +122,38 @@
     }
   },
   "s6_breathing_delta": {
-    "stddev": -21.24,
+    "stddev": -20.21,
     "max_channel": 0,
-    "brightness": -6.73
+    "brightness": -8.79
   },
   "s6_breathing": true,
   "s8_stats": {
     "halo": 0,
-    "bloom_mean": 0.0578
+    "bloom_mean": 0.0146
   },
   "s8_pass": true,
   "s9_stats": {
     "xR": {
-      "x": 295,
-      "v": 255
+      "x": 789,
+      "v": 228
     },
     "xG": {
-      "x": 292,
-      "v": 255
+      "x": 790,
+      "v": 224
     },
     "xB": {
-      "x": 300,
+      "x": 235,
       "v": 255
     }
   },
   "s9_pass": true,
   "s10_stats": {
-    "foam_mean": 0.6452
+    "foam_mean": 0.1812
   },
   "s10_pass": true,
   "s7_console_clean": true,
   "s11_pass": true,
   "s12_fps_samples": 60,
-  "s12_fps_mean": 34.28,
+  "s12_fps_mean": 38.54,
   "s12_pass": true
 }

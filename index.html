@@ -587,7 +587,7 @@ void main () {
 
     // 8. Mild gamma + global dim (softer on the eyes) + HDR tonemap
     outc = pow(outc, vec3(1.0/1.1));
-    outc *= 0.82;  // global brightness dim so the aurora stays readable but never hurts the eyes
+    outc *= 0.5;  // global brightness dim — half-strength output, easy on the eyes
     fragColor = vec4(tonemap(outc), 1.0);
 }
 </script>
@@ -850,12 +850,12 @@ void main () {
       SPLAT_RADIUS: 0.18,
       SPLAT_FORCE: 6000,
       FOAM_ENABLED: true,
-      FOAM_INTENSITY: 0.07,
-      FOAM_THRESHOLD: 8.0,
+      FOAM_INTENSITY: 0.035,
+      FOAM_THRESHOLD: 16.0,
       FOAM_DECAY: 0.92,
       BLOOM_ENABLED: true,
-      BLOOM_INTENSITY: 0.25,
-      BLOOM_THRESHOLD: 0.5,
+      BLOOM_INTENSITY: 0.125,
+      BLOOM_THRESHOLD: 0.8,
       BLOOM_SOFT_KNEE: 0.7,
       BLOOM_RADIUS: 0.85,
       BLOOM_LEVELS: 6,
