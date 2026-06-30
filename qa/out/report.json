@@ -1,0 +1,131 @@
+{
+  "errors": [],
+  "s1": {
+    "gl": true,
+    "isWebGL2": true,
+    "errOverlayShown": false
+  },
+  "s1_webgl2": true,
+  "s2_fbo_complete": true,
+  "s3_idle_stats": {
+    "mean_rgb": [
+      45.25,
+      62.75,
+      97.89
+    ],
+    "max_rgb": [
+      63,
+      83,
+      121
+    ],
+    "stddev": 24.25,
+    "non_black_fraction": 1,
+    "samples": 786432,
+    "region": {
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 768
+    }
+  },
+  "s3_idle_painted": true,
+  "s4_idle_region": {
+    "mean_rgb": [
+      50.32,
+      68.84,
+      106.04
+    ],
+    "max_rgb": [
+      61,
+      81,
+      119
+    ],
+    "stddev": 13.23,
+    "non_black_fraction": 1,
+    "samples": 160000,
+    "region": {
+      "x": 312,
+      "y": 184,
+      "w": 400,
+      "h": 400
+    }
+  },
+  "s4_splat_stats": {
+    "mean_rgb": [
+      106.37,
+      97.93,
+      151.68
+    ],
+    "max_rgb": [
+      255,
+      255,
+      255
+    ],
+    "stddev": 114.62,
+    "non_black_fraction": 1,
+    "samples": 160000,
+    "region": {
+      "x": 312,
+      "y": 184,
+      "w": 400,
+      "h": 400
+    }
+  },
+  "s4_delta": {
+    "brightness": 45.64,
+    "stddev": 101.39
+  },
+  "s4_splat_color": true,
+  "s5_fps": 59.96,
+  "s5_fps_pass": true,
+  "s6_ambient_splats_emitted": 40,
+  "s6_breathing_before": {
+    "mean_rgb": [
+      72.42,
+      73.17,
+      122.55
+    ],
+    "max_rgb": [
+      255,
+      255,
+      255
+    ],
+    "stddev": 91.64,
+    "non_black_fraction": 1,
+    "samples": 786432,
+    "region": {
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 768
+    }
+  },
+  "s6_breathing_after": {
+    "mean_rgb": [
+      87.76,
+      82.74,
+      136.17
+    ],
+    "max_rgb": [
+      255,
+      255,
+      255
+    ],
+    "stddev": 112.67,
+    "non_black_fraction": 1,
+    "samples": 786432,
+    "region": {
+      "x": 0,
+      "y": 0,
+      "w": 1024,
+      "h": 768
+    }
+  },
+  "s6_breathing_delta": {
+    "stddev": 21.03,
+    "max_channel": 0,
+    "brightness": 13.62
+  },
+  "s6_breathing": true,
+  "s7_console_clean": true
+}

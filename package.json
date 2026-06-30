@@ -1,0 +1,10 @@
+{
+  "name": "aurora-fluid",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "GPU-driven aurora-palette Stable Fluids simulation in a single HTML",
+  "scripts": {
+    "qa": "node qa/capture.mjs"
+  }
+}
