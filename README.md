@@ -10,7 +10,7 @@
 
 ## 🎬 라이브 데모 (Live Demo)
 
-> **👉 [https://aurora-fluid.vercel.app/](https://aurora-fluid.vercel.app/)** — 브라우저에서 바로 실행 (WebGL 2 필요)
+> **👉 [https://sigco3111.github.io/aurora-fluid/](https://sigco3111.github.io/aurora-fluid/)** — 브라우저에서 바로 실행 (WebGL 2 필요)
 
 | | |
 |---|---|
@@ -39,7 +39,7 @@
 | **저장소** | [`sigco3111/aurora-fluid`](https://github.com/sigco3111/aurora-fluid) |
 | **라이선스** | MIT |
 | **의존성** | 없음 (WebGL 2 + 인라인 GLSL, 단일 HTML) |
-| **배포** | Vercel (auto-alias: `aurora-fluid.vercel.app`) |
+| **배포** | Vercel (auto-alias: `sigco3111.github.io/aurora-fluid`) |
 
 ### 📝 사용된 프롬프트 (원문)
 
@@ -89,7 +89,7 @@ python3 -m http.server 8000
 ```
 
 ### 방법 3: 라이브 데모 (Vercel)
-별도 설치 없이 **[aurora-fluid.vercel.app](https://aurora-fluid.vercel.app/)** 에서 바로 확인 가능합니다.
+별도 설치 없이 **[sigco3111.github.io/aurora-fluid](https://sigco3111.github.io/aurora-fluid/)** 에서 바로 확인 가능합니다.
 
 ---
 
