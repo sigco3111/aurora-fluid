@@ -14,7 +14,7 @@
 
 | | |
 |---|---|
-| ![Demo](https://img.shields.io/badge/Live-Demo-7C3AED?style=for-the-badge&logo=vercel&logoColor=white) | [![Repo](https://img.shields.io/badge/GitHub-sigco3111%2Faurora--fluid-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sigco3111/aurora-fluid) |
+| ![Demo](https://img.shields.io/badge/Live-Demo-222222?style=for-the-badge&logo=githubpages&logoColor=white) | [![Repo](https://img.shields.io/badge/GitHub-sigco3111%2Faurora--fluid-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sigco3111/aurora-fluid) |
 | ![Status](https://img.shields.io/badge/Status-Live-22C55E?style=flat-square) | ![Stack](https://img.shields.io/badge/Stack-WebGL2%20%2B%20GLSL-5586FF?style=flat-square&logo=webgl&logoColor=white) |
 | ![License](https://img.shields.io/badge/License-MIT-F1C40F?style=flat-square) | ![Deps](https://img.shields.io/badge/Dependencies-0-9CA3AF?style=flat-square) |
 
@@ -39,7 +39,7 @@
 | **저장소** | [`sigco3111/aurora-fluid`](https://github.com/sigco3111/aurora-fluid) |
 | **라이선스** | MIT |
 | **의존성** | 없음 (WebGL 2 + 인라인 GLSL, 단일 HTML) |
-| **배포** | Vercel (auto-alias: `sigco3111.github.io/aurora-fluid`) |
+| **배포** | GitHub Pages (`sigco3111.github.io/aurora-fluid`) |
 
 ### 📝 사용된 프롬프트 (원문)
 
@@ -88,7 +88,7 @@ python3 -m http.server 8000
 # → http://localhost:8000
 ```
 
-### 방법 3: 라이브 데모 (Vercel)
+### 방법 3: 라이브 데모 (GitHub Pages)
 별도 설치 없이 **[sigco3111.github.io/aurora-fluid](https://sigco3111.github.io/aurora-fluid/)** 에서 바로 확인 가능합니다.
 
 ---
@@ -116,7 +116,7 @@ python3 -m http.server 8000
 | **FBO 포맷** | `RGBA16F` (half-float) | 발산 0 클램프 방지 |
 | **JS 런타임** | Vanilla JS (ES2020+) | 프레임워크 없음 |
 | **빌드** | 없음 | 단일 HTML, 즉시 실행 |
-| **배포** | Vercel | GitHub 연동 auto-deploy |
+| **배포** | GitHub Pages | main push → gh-pages 자동 배포 |
 
 ### 🧬 셰이더 파이프라인 (16 셰이더)
 ```

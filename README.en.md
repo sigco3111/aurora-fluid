@@ -10,11 +10,11 @@ A **GPU fluid simulator** that solves velocity, pressure, and divergence entirel
 
 ## 🎬 Live Demo
 
-> **👉 [https://aurora-fluid.vercel.app/](https://aurora-fluid.vercel.app/)** — Run directly in your browser (WebGL 2 required)
+> **👉 [https://sigco3111.github.io/aurora-fluid/](https://sigco3111.github.io/aurora-fluid/)** — Run directly in your browser (WebGL 2 required)
 
 | | |
 |---|---|
-| ![Demo](https://img.shields.io/badge/Live-Demo-7C3AED?style=for-the-badge&logo=vercel&logoColor=white) | [![Repo](https://img.shields.io/badge/GitHub-sigco3111%2Faurora--fluid-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sigco3111/aurora-fluid) |
+| ![Demo](https://img.shields.io/badge/Live-Demo-222222?style=for-the-badge&logo=githubpages&logoColor=white) | [![Repo](https://img.shields.io/badge/GitHub-sigco3111%2Faurora--fluid-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sigco3111/aurora-fluid) |
 | ![Status](https://img.shields.io/badge/Status-Live-22C55E?style=flat-square) | ![Stack](https://img.shields.io/badge/Stack-WebGL2%20%2B%20GLSL-5586FF?style=flat-square&logo=webgl&logoColor=white) |
 | ![License](https://img.shields.io/badge/License-MIT-F1C40F?style=flat-square) | ![Deps](https://img.shields.io/badge/Dependencies-0-9CA3AF?style=flat-square) |
 
@@ -39,7 +39,7 @@ This project's code was **automatically generated** using the model and prompt b
 | **Repository** | [`sigco3111/aurora-fluid`](https://github.com/sigco3111/aurora-fluid) |
 | **License** | MIT |
 | **Dependencies** | None (WebGL 2 + inline GLSL, single HTML) |
-| **Deployment** | Vercel (auto-alias: `aurora-fluid.vercel.app`) |
+| **Deployment** | GitHub Pages (auto-alias: `sigco3111.github.io/aurora-fluid`) |
 
 ### 📝 Prompt used (verbatim)
 
@@ -89,8 +89,8 @@ python3 -m http.server 8000
 # → http://localhost:8000
 ```
 
-### Option 3: Live demo (Vercel)
-No install required — open **[aurora-fluid.vercel.app](https://aurora-fluid.vercel.app/)** directly.
+### Option 3: Live demo (GitHub Pages)
+No install required — open **[sigco3111.github.io/aurora-fluid](https://sigco3111.github.io/aurora-fluid/)** directly.
 
 ---
 
@@ -117,7 +117,7 @@ No install required — open **[aurora-fluid.vercel.app](https://aurora-fluid.ve
 | **FBO format** | `RGBA16F` (half-float) | Prevents divergence clamp artifacts |
 | **JS runtime** | Vanilla JS (ES2020+) | No framework |
 | **Build** | None | Single HTML, instant run |
-| **Deployment** | Vercel | GitHub auto-deploy |
+| **Deployment** | GitHub Pages | main push → gh-pages auto-deploy |
 
 ### 🧬 Shader pipeline (16 shaders)
 ```
